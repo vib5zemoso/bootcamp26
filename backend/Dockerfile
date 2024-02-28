@@ -5,5 +5,5 @@ RUN mvn clean package -DskipTests
 
 FROM openjdk:11.0-jdk-slim
 COPY --from=MAVEN_JAR code/target/*.jar app.jar
-EXPOSE 9002
+EXPOSE 8090
 ENTRYPOINT ["java","-jar","app.jar"]

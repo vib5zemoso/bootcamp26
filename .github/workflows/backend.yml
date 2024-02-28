@@ -86,7 +86,7 @@ jobs:
           sudo docker pull ghcr.io/${{ github.repository_owner}}/bootcamp26-backend:latest
           sudo docker stop bootcamp26-backend || true
           sudo docker rm bootcamp26-backend || true
-          sudo docker run -d --name bootcamp26-backend -p 9002:9002 ghcr.io/${{ github.repository_owner}}/bootcamp26-backend:latest
+          sudo docker run -d --name bootcamp26-backend -p 8090:8090 ghcr.io/${{ github.repository_owner}}/bootcamp26-backend:latest
     
               
     
