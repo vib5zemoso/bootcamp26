@@ -86,6 +86,8 @@ jobs:
 
   deploy:
     name: EC2 Deploy
+    permissions:
+      packages: write
     runs-on: ubuntu-latest
     timeout-minutes: 8
     needs:
@@ -93,12 +95,19 @@ jobs:
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
+    
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Deploy to AWS instance
       run: |
         echo "${{ env.AWS_KEY }}" > key.pem
         chmod 400 key.pem
-        ssh -o StrictHostKeyChecking=no -i "key.pem" "${{ env.AWS_USERNAME }}"@"${{ env.AWS_HOST }}""
+        ssh -o StrictHostKeyChecking=no -i "key.pem" "${{ env.AWS_USERNAME }}"@"${{ env.AWS_HOST }}"
         sudo docker pull ghcr.io/${{ github.repository_owner}}/bootcamp26-frontend:latest
         sudo docker stop bootcamp26-frontend || true
         sudo docker rm bootcamp26-frontend || true
