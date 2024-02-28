@@ -45,7 +45,6 @@ jobs:
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package.json') }}
 
     - name: Install Dependecies
-      if: steps.cache-npm.outputs.cache-hit != 'true'
       run: npm install
 
     - name: Retrieve the env vars
