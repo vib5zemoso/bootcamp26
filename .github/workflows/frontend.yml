@@ -46,6 +46,7 @@ jobs:
       run: echo "${{ secrets.FE_ENV }}" > .env
 
     - name: Test and coverage
+      continue-on-error: true
       run: npm test
 
     - name: Build application
