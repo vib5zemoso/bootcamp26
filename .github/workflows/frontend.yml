@@ -74,7 +74,7 @@ jobs:
   deploy:
     name: EC2 Deploy
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 5
     needs:
       - frontend-build
     steps:
@@ -101,19 +101,4 @@ jobs:
           docker rm bootcamp26-frontend || true &&
           docker run -d --name bootcamp26-frontend -p 80:80 ghcr.io/${{ github.repository_owner}}/bootcamp26-frontend:${{ github.sha }}
         '
-
-    # - name: Deploy to AWS instance
-    #   uses: appleboy/ssh-action@master
-    #   with:
-    #     host: ${{ secrets.AWS_INSTANCE_IP }}
-    #     username: ${{ secrets.AWS_INSTANCE_USERNAME }}
-    #     key: ${{ secrets.AWS_INSTANCE_PRIVATE_KEY }}
-    #     script: |
-    #       sudo docker pull ghcr.io/${{ github.repository_owner}}/bootcamp26-frontend:${{ github.sha }}
-    #       sudo docker stop bootcamp26-frontend || true
-    #       sudo docker rm bootcamp26-frontend || true
-    #       sudo docker run -d --name bootcamp26-frontend -p 80:80 ghcr.io/${{ github.repository_owner}}/bootcamp26-frontend:${{ github.sha }}
-
-          
-
     

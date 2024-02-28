@@ -1,15 +1,19 @@
 name: Backend Build
 run-name: Backend deployment update triggered by ${{ github.actor }}.
 on:
-  workflow_dispatch: 
-#   push:
-#     branches:
-#       - deployment
-#     paths:
-#       - "backend/**"
-#       - ".github/workflows/backendBuild.yml"
-#   pull_request:
-#     types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - deployment
+    paths:
+      - "backend/**"
+      - ".github/workflows/backendBuild.yml"
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+env:
+  AWS_HOST: ${{ secrets.AWS_INSTANCE_IP }}
+  AWS_USERNAME: ${{ secrets.AWS_INSTANCE_USERNAME }}
+  AWS_PRIVATE_KEY: ${{ secrets.AWS_INSTANCE_PRIVATE_KEY }}
 
 permissions:
   packages: write
@@ -52,7 +56,7 @@ jobs:
   deploy:
     name: EC2 Deploy
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 5
     needs:
       - backend-build
     steps:
@@ -65,19 +69,17 @@ jobs:
         registry: ghcr.io
         username: ${{ github.repository_owner }}
         password: ${{ secrets.GITHUB_TOKEN }}
-    
+
+    - name: Set permissions for private key
+      run: |
+        echo "${{ env.AWS_PRIVATE_KEY }}" > key.pem
+        chmod 600 key.pem
+
     - name: Deploy to AWS instance
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.AWS_INSTANCE_IP }}
-        username: ${{ secrets.AWS_INSTANCE_USERNAME }}
-        key: ${{ secrets.AWS_INSTANCE_PRIVATE_KEY }}
-        script: |
-          sudo docker pull ghcr.io/${{ github.repository_owner}}/bootcamp26-backend:${{ github.sha }}
-          sudo docker stop bootcamp26-backend || true
-          sudo docker rm bootcamp26-backend || true
-          sudo docker run -d --name bootcamp26-backend -p 8090:8090 ghcr.io/${{ github.repository_owner}}/bootcamp26-backend:${{ github.sha }}
-    
-              
-    
-        
+      run: |
+        ssh -o StrictHostKeyChecking=no -i key.pem ${{ env.AWS_USERNAME }}@${{ env.AWS_HOST }} '
+          docker pull ghcr.io/${{ github.repository_owner}}/bootcamp26-backend:${{ github.sha }} &&
+          docker stop bootcamp26-backend || true &&
+          docker rm bootcamp26-backend || true &&
+          docker run -d --name bootcamp26-backend -p 8090:8090 ghcr.io/${{ github.repository_owner}}/bootcamp26-backend:${{ github.sha }}
+        '
