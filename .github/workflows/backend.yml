@@ -1,0 +1,93 @@
+name: Backend Build
+run-name: Backend deployment update triggered by ${{ github.actor }}.
+on:
+  push:
+    branches:
+      - deployment
+    paths:
+      - "backend/**"
+      - ".github/workflows/backendBuild.yml"
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  packages: write
+  
+jobs:
+  backend-build:
+    name: Build and test the Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Setup Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'corretto' 
+        java-version: '11'
+
+    - name: Build project with Maven
+      run: mvn clean package -DskipTests
+
+  docker:
+    name: Docker Job
+    permissions:
+      packages: write
+    runs-on: ubuntu-latest
+    needs:
+      - backend-build
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+    
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Build and push
+      uses: docker/build-push-action@v4
+      with:
+        context: backend
+        push: true
+        tags: ghcr.io/${{ github.repository_owner}}/bootcamp26-backend:latest
+    
+  deploy:
+    name: EC2 Deploy
+    permissions:
+      packages: write
+    runs-on: ubuntu-latest
+    needs:
+      - docker
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+    
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Deploy to AWS instance
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.AWS_INSTANCE_IP }}
+        username: ${{ secrets.AWS_INSTANCE_USERNAME }}
+        key: ${{ secrets.AWS_INSTANCE_PRIVATE_KEY }}
+        script: |
+          sudo docker pull ghcr.io/${{ github.repository_owner}}/bootcamp26-backend:latest
+          sudo docker stop bootcamp26-backend || true
+          sudo docker rm bootcamp26-backend || true
+          sudo docker run -d --name bootcamp26-backend -p 9002:9002 ghcr.io/${{ github.repository_owner}}/bootcamp26-backend:latest
+    
+              
+    
+        
