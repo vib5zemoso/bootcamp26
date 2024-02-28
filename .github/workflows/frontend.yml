@@ -96,11 +96,12 @@ jobs:
 
     - name: Deploy to AWS instance
       run: |
-        ssh -o StrictHostKeyChecking=no -i key.pem ${{ env.AWS_USERNAME }}@${{ env.AWS_HOST }}
-        docker pull ghcr.io/${{ github.repository_owner}}/bootcamp26-frontend:${{ github.sha }}
-        docker stop bootcamp26-frontend || true
-        docker rm bootcamp26-frontend || true
-        docker run -d --name bootcamp26-frontend -p 80:80 ghcr.io/${{ github.repository_owner}}/bootcamp26-frontend:${{ github.sha }}
+        ssh -o StrictHostKeyChecking=no -i key.pem ${{ env.AWS_USERNAME }}@${{ env.AWS_HOST }}'
+          docker pull ghcr.io/${{ github.repository_owner}}/bootcamp26-frontend:${{ github.sha }} &&
+          docker stop bootcamp26-frontend || true &&
+          docker rm bootcamp26-frontend || true &&
+          docker run -d --name bootcamp26-frontend -p 80:80 ghcr.io/${{ github.repository_owner}}/bootcamp26-frontend:${{ github.sha }}
+        '
 
     # - name: Deploy to AWS instance
     #   uses: appleboy/ssh-action@master
