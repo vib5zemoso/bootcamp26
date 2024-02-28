@@ -13,13 +13,13 @@ on:
 env:
   AWS_HOST: ${{ secrets.AWS_INSTANCE_IP }}
   AWS_USERNAME: ${{ secrets.AWS_INSTANCE_USERNAME }}
-  AWS_KEY: ${{ secrets.AWS_INSTANCE_PRIVATE_KEY }}
+  AWS_PRIVATE_KEY: ${{ secrets.AWS_INSTANCE_PRIVATE_KEY }}
 
 permissions:
   packages: write
 
 jobs:
-  frontend-build-test:
+  frontend-build:
     name: Build and test the Frontend
     runs-on: ubuntu-latest
     timeout-minutes: 8
@@ -41,7 +41,7 @@ jobs:
       env:
         cache-name: cache-node-modules
       with:
-        path: ${{ github.workspace }}/frontend/node_modules
+        path: ~/.npm
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package.json') }}
 
     - name: Install Dependecies
@@ -58,18 +58,6 @@ jobs:
     - name: Build application
       run: npm run build
 
-  docker:
-    name: Docker Job
-    permissions:
-      packages: write
-    runs-on: ubuntu-latest
-    timeout-minutes: 8
-    needs:
-      - frontend-build-test
-    steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-
     - name: Login to GitHub Container Registry
       uses: docker/login-action@v3
       with:
@@ -82,16 +70,14 @@ jobs:
       with:
         context: frontend
         push: true
-        tags: ghcr.io/${{ github.repository_owner}}/bootcamp26-frontend:latest
+        tags: ghcr.io/${{ github.repository_owner}}/bootcamp26-frontend:${{ github.sha }}
 
   deploy:
     name: EC2 Deploy
-    permissions:
-      packages: write
     runs-on: ubuntu-latest
     timeout-minutes: 8
     needs:
-      - docker
+      - frontend-build
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
@@ -103,15 +89,18 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Set permissions for private key
+      run: |
+        echo "${{ env.AWS_PRIVATE_KEY }}" > key.pem
+        chmod 600 key.pem
+
     - name: Deploy to AWS instance
       run: |
-        echo "${{ env.AWS_KEY }}" > key.pem
-        chmod 400 key.pem
-        ssh -o StrictHostKeyChecking=no -i "key.pem" "${{ env.AWS_USERNAME }}"@"${{ env.AWS_HOST }}"
-        sudo docker pull ghcr.io/${{ github.repository_owner}}/bootcamp26-frontend:latest
-        sudo docker stop bootcamp26-frontend || true
-        sudo docker rm bootcamp26-frontend || true
-        sudo docker run -d --name bootcamp26-frontend -p 80:80 ghcr.io/${{ github.repository_owner}}/bootcamp26-frontend:latest
+        ssh -o StrictHostKeyChecking=no -i key.pem ${{ env.AWS_USERNAME }}@${{ env.AWS_HOST }}
+        docker pull ghcr.io/${{ github.repository_owner}}/bootcamp26-frontend:${{ github.sha }}
+        docker stop bootcamp26-frontend || true
+        docker rm bootcamp26-frontend || true
+        docker run -d --name bootcamp26-frontend -p 80:80 ghcr.io/${{ github.repository_owner}}/bootcamp26-frontend:${{ github.sha }}
 
     # - name: Deploy to AWS instance
     #   uses: appleboy/ssh-action@master
@@ -120,10 +109,10 @@ jobs:
     #     username: ${{ secrets.AWS_INSTANCE_USERNAME }}
     #     key: ${{ secrets.AWS_INSTANCE_PRIVATE_KEY }}
     #     script: |
-    #       sudo docker pull ghcr.io/${{ github.repository_owner}}/bootcamp26-frontend:latest
+    #       sudo docker pull ghcr.io/${{ github.repository_owner}}/bootcamp26-frontend:${{ github.sha }}
     #       sudo docker stop bootcamp26-frontend || true
     #       sudo docker rm bootcamp26-frontend || true
-    #       sudo docker run -d --name bootcamp26-frontend -p 80:80 ghcr.io/${{ github.repository_owner}}/bootcamp26-frontend:latest
+    #       sudo docker run -d --name bootcamp26-frontend -p 80:80 ghcr.io/${{ github.repository_owner}}/bootcamp26-frontend:${{ github.sha }}
 
           
 
