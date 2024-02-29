@@ -6,4 +6,4 @@ COPY ./book_discovery.sql /docker-entrypoint-initdb.d/
 
 EXPOSE 3306
 
-VOLUME /docker-entrypoint-initdb.d
+VOLUME /var/lib/mysql
