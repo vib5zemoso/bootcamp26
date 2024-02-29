@@ -10,6 +10,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+
 env:
   AWS_HOST: ${{ secrets.AWS_INSTANCE_IP }}
   AWS_USERNAME: ${{ secrets.AWS_INSTANCE_USERNAME }}
