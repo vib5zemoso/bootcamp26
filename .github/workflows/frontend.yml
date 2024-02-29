@@ -7,9 +7,6 @@ on:
     paths:
       - "frontend/**"
       - ".github/workflows/frontendBuild.yml"
-  pull_request:
-    types: [opened, synchronize, reopened]
-
 
 env:
   AWS_HOST: ${{ secrets.AWS_INSTANCE_IP }}
