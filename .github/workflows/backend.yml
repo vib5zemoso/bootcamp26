@@ -7,9 +7,6 @@ on:
     paths:
       - "backend/**"
       - ".github/workflows/backendBuild.yml"
-  pull_request:
-    types: [opened, synchronize, reopened]
-
 
 env:
   AWS_HOST: ${{ secrets.AWS_INSTANCE_IP }}
