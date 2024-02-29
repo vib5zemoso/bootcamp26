@@ -55,7 +55,7 @@ module.exports = {
     }),
     new EnvironmentPlugin({
       REACT_APP_API_ENDPOINT: JSON.stringify(
-        process.env.REACT_APP_API_ENDPOINT | 'http://localhost:8090'
+        process.env.REACT_APP_API_ENDPOINT | 'http://localhost:8090' | 'http://13.210.73.88:8090'
       ),
     }),
   ],

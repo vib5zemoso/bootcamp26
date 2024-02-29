@@ -1,12 +1,12 @@
-name: Frontend Build
-run-name: Frontend deployment update triggered by ${{ github.actor }}.
+name: Backend Build
+run-name: Backend deployment update triggered by ${{ github.actor }}.
 on:
   push:
     branches:
       - deployment
     paths:
-      - "frontend/**"
-      - ".github/workflows/frontendBuild.yml"
+      - "backend/**"
+      - ".github/workflows/backendBuild.yml"
 
 env:
   AWS_HOST: ${{ secrets.AWS_INSTANCE_IP }}
@@ -15,45 +15,27 @@ env:
 
 permissions:
   packages: write
-
+  
 jobs:
-  frontend-build:
-    name: Build and test the Frontend
+  backend-build:
+    name: Build and test the Backend
     runs-on: ubuntu-latest
     timeout-minutes: 8
     defaults:
       run:
-        working-directory: frontend
+        working-directory: backend
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v3
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
+    - name: Setup Java
+      uses: actions/setup-java@v3
       with:
-        node-version: 18
+        distribution: 'corretto' 
+        java-version: '11'
 
-    - name: Cache Node Modules
-      id: cache-npm
-      uses: actions/cache@v3
-      env:
-        cache-name: cache-node-modules
-      with:
-        path: ~/.npm
-        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package.json') }}
-
-    - name: Install Dependecies
-      run: npm install
-
-    - name: Retrieve the env vars
-      run: echo "${{ secrets.FE_ENV }}" > .env
-
-    - name: Test and coverage
-      continue-on-error: true
-      run: npm test
-
-    - name: Build application
-      run: npm run build
+    - name: Build project with Maven
+      run: mvn clean package -DskipTests
 
     - name: Login to GitHub Container Registry
       uses: docker/login-action@v3
@@ -61,20 +43,20 @@ jobs:
         registry: ghcr.io
         username: ${{ github.repository_owner }}
         password: ${{ secrets.GITHUB_TOKEN }}
-
+    
     - name: Build and push
       uses: docker/build-push-action@v4
       with:
-        context: frontend
+        context: backend
         push: true
-        tags: ghcr.io/${{ github.repository_owner}}/bootcamp26-frontend:${{ github.sha }}
-
+        tags: ghcr.io/${{ github.repository_owner}}/bootcamp26-backend:${{ github.sha }}
+    
   deploy:
     name: EC2 Deploy
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs:
-      - frontend-build
+      - backend-build
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
@@ -94,9 +76,8 @@ jobs:
     - name: Deploy to AWS instance
       run: |
         ssh -o StrictHostKeyChecking=no -i key.pem ${{ env.AWS_USERNAME }}@${{ env.AWS_HOST }} '
-          docker pull ghcr.io/${{ github.repository_owner}}/bootcamp26-frontend:${{ github.sha }} &&
-          docker stop bootcamp26-frontend || true &&
-          docker rm bootcamp26-frontend || true &&
-          docker run -d --name bootcamp26-frontend -p 80:80 ghcr.io/${{ github.repository_owner}}/bootcamp26-frontend:${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository_owner}}/bootcamp26-backend:${{ github.sha }} &&
+          docker stop bootcamp26-backend || true &&
+          docker rm bootcamp26-backend || true &&
+          docker run -d --name bootcamp26-backend -p 8090:8090 ghcr.io/${{ github.repository_owner}}/bootcamp26-backend:${{ github.sha }}
         '
-    
